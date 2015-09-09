@@ -32,7 +32,7 @@ Data Stack size         : 512
 
 /* Debug mode definition */
 #define DEBUG_MODE 1    // USE OUR CODE, ask Phat for more details
-//#define DEBUG_EN 1      // Blue tooth mode
+#define DEBUG_EN 1      // Blue tooth mode
 
 /* PIN DEFINITION */
 // PIN LED ROBO KIT
@@ -106,6 +106,24 @@ typedef struct {
 	IntBall ball;
 } IntRobot;
 
+// Nguyen move here
+
+#ifdef DEBUG_EN
+char debugMsgBuff[32];
+#endif
+void debug_out(char *pMsg, unsigned char len)
+{
+#ifdef DEBUG_EN
+	char i = 0;
+	for (i = 0; i < len; i++)
+	{
+		putchar(*pMsg++);
+		delay_us(300);
+	}
+#endif
+	return;
+}
+
 // FUNCTION DECLARATION
 IntRobot convertRobot2IntRobot(Robot robot);
 unsigned char readposition();
@@ -120,7 +138,7 @@ int calcVangle(int angle);
 // VARIABLES DECLARATION
 Robot rb;
 IntRobot robot11, robot12, robot13, robot21, robot22, robot23, robotctrl;
-float errangle = 0, distance = 0, orentation = 0;
+float errangle = 0, distance = 0, orientation = 0;
 int flagtancong = 1;
 int offsetphongthu = 0;
 int goctancong = 0;
@@ -188,6 +206,11 @@ int absolute(int a) {
 	if (a > 0) return a;
 	return (-a);
 }
+
+float fabsolute(float a) {
+	if (a > 0) return a;
+	return (-a);
+}
 float min3(float a, float b, float c){
 	float m = a;
 	if (m > b) m = b;
@@ -231,6 +254,10 @@ void setSpeed(int leftSpeed, int rightSpeed) {
 #define VBASE 15
 #define KMOVE 25
 
+int map(int x, int in_min, int in_max, int out_min, int out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
 void kick(int x_des, int y_des, int x_goal, int y_goal, char mode){
 
 	int vx_des, vy_des, vx_goal, vy_goal;                    // vdes & vgoal coordinates
@@ -310,11 +337,28 @@ void kick(int x_des, int y_des, int x_goal, int y_goal, char mode){
 	leftSpeed = wl;
 	rightSpeed = wr;
 }
+//DAT
+int xrb_last=0;
+int yrb_last=0;
+float angle_last = 0;
 
+#define V_THRESHOLD 10
+
+float get_angle(){
+	int vx, vy;
+	vx = (robotctrl.x - xrb_last);
+	vy = (robotctrl.y - yrb_last);
+	if ((fabsolute(vx) > V_THRESHOLD) || (fabsolute(vy) > V_THRESHOLD)) {
+		xrb_last = robotctrl.x;
+		yrb_last = robotctrl.y;
+		angle_last = atan2(vy, vx);
+	}
+	return angle_last;
+}
 void movePoint(IntRobot rbctrl, int x_des, int y_des, int angle, char mode){
 
 	int vx_des, vy_des, vx_goal, vy_goal;	                // vdes & vgoal coordinates
-	int rb_angle, des_angle, goal_angle, new_angle;       // angles of vrb, vdes, vgoal & (vdes + vgoal) to x-axis
+	float rb_angle, des_angle, goal_angle, new_angle;       // angles of vrb, vdes, vgoal & (vdes + vgoal) to x-axis
 	int rotation_angle;
 	int minimum, maximum;
 	int wl, wr;
@@ -324,8 +368,8 @@ void movePoint(IntRobot rbctrl, int x_des, int y_des, int angle, char mode){
 	vx_des = x_des - rbctrl.x;			// vdes calculation
 	vy_des = y_des - rbctrl.y;
 
-	dirx = rbctrl.ox - rbctrl.x;
-	diry = rbctrl.oy - rbctrl.y;
+//	dirx = robotctrl.ox - robotctrl.x;
+//	diry = robotctrl.oy - robotctrl.y;
 
 	switch (angle) { // vgoal calculation
 	case 0: 	vx_goal = 1; vy_goal = 0; break;
@@ -336,7 +380,8 @@ void movePoint(IntRobot rbctrl, int x_des, int y_des, int angle, char mode){
 	}
 
 	// Angle calculation
-	rb_angle = atan2(diry, dirx);
+	//rb_angle = get_angle();
+	rb_angle = orientation;
 	des_angle = atan2(vy_des, vx_des);
 
 	// Adding vgoal to vrb
@@ -378,10 +423,69 @@ void movePoint(IntRobot rbctrl, int x_des, int y_des, int angle, char mode){
 		wr = VBASE + rotation_angle * KMOVE;
 		break;
 	}
-	// Set speed for motor   
+	// Set speed for motor
+    /*if (wl > 15){
+        wl = map(wl,0,82,5,22);}
+    else{
+        wl = map(-wl,0,82,5,22); 
+        wl = -wl;
+    }
+    if (wr > 0){
+        wr = map(wr,0,82,5,22);} 
+    else{
+        wr = map(-wr,0,82,5,22);
+        wr = -wr;
+    } */
+
+	if (wl>15){
+		wl = map(wl, 15, 82, 5, 22);
+	}
+	else{
+		wl = map(wl, 15, -60, 5, 22);
+
+	}
+	if (wl>15){
+		wr = map(wl, 15, 82, 5, 22);
+	}
+	else{
+		wr = map(wl, 15, -60, 5, 22);
+	}
+
+	if (wl == wr){
+		wl = 11;
+		wr = 11;
+	}
+
 	leftSpeed = wl;
 	rightSpeed = wr;
-	// need some function here
+
+#ifdef DEBUG_EN   
+    {
+	    /*char dbgLen;   
+        
+        dbgLen = sprintf(debugMsgBuff, "ID: %d \n\r", robotctrl.id);
+		debug_out(debugMsgBuff, dbgLen);      
+            
+        dbgLen = sprintf(debugMsgBuff, "x: %d \n\r", robotctrl.x);
+		debug_out(debugMsgBuff, dbgLen);
+        
+        dbgLen = sprintf(debugMsgBuff, "y: %d \n\r", robotctrl.y);
+		debug_out(debugMsgBuff, dbgLen);
+        
+        dbgLen = sprintf(debugMsgBuff, "Angles: %d \n\r", rb_angle*180/PI);
+		debug_out(debugMsgBuff, dbgLen);
+
+		dbgLen = sprintf(debugMsgBuff, "Left Speed: %d \n\r", leftSpeed);
+		debug_out(debugMsgBuff, dbgLen);
+
+		dbgLen = sprintf(debugMsgBuff, "Right Speed: %d \n\n\r", rightSpeed);
+		debug_out(debugMsgBuff, dbgLen);*/
+	}
+#endif 
+}
+
+int squareDistance(int aX, int aY, int bX, int bY) {
+	return (bX - aX) * (bX - aX) + (bY - bX) * (bY - bX);
 }
 
 // some function to set speed = 0
@@ -392,6 +496,12 @@ void stop() {
 void rotate(int angle){
 	angle = angle * LDIVR * 0.5;
 	setSpeed(angle, -angle);
+}
+
+// [ PHAT ]
+
+float getOrientation(){
+
 }
 
 
@@ -688,6 +798,7 @@ void LCDinit()
 	LcdClear();
 	ws(" <AKBOTKIT>");
 }
+
 
 /* ADC */
 #define ADC_VREF_TYPE 0x40
@@ -1059,9 +1170,14 @@ return flagstatus;
 // calc  vi tri robot   so voi mot diem (x,y)        PHUC
 // return goclenh va khoang cach, HUONG TAN CONG
 //========================================================
+
+
+#define LP_O_C 0.5
+float oldOrientation = 0;
+
 void calcvitri(float x, float y)
 {
-	float ahx, ahy, aox, aoy, dah, dao, ahay, cosgoc, anpla0, anpla1, detaanpla;
+	float ahx, ahy, aox, aoy, dah, dao, ahay, cosgoc, anpla0, anpla1, detaanpla, newOrientation;
 	ahx = robotctrl.ox - robotctrl.x;
 	ahy = robotctrl.oy - robotctrl.y;
 	aox = x - robotctrl.x;
@@ -1086,8 +1202,9 @@ void calcvitri(float x, float y)
 
 	}
 	distance = sqrt(aox*3.48*aox*3.48 + aoy*2.89*aoy*2.89); //tinh khoang cach   
-	orentation = atan2(ahy, ahx) * 180 / M_PI + offestsanco;//tinh huong ra goc 
-	if ((0 < orentation && orentation < 74) || (0 > orentation && orentation > -80))
+	newOrientation = atan2(ahy, ahx) * 180 / M_PI + offestsanco;//tinh huong ra goc
+	orientation = newOrientation * LP_O_C + oldOrientation * (1 - LP_O_C);
+	if ((0 < orientation && orientation < 74) || (0 > orientation && orientation > -80))
 	{
 		if (SAN_ID == 1)// phan san duong
 		{
@@ -2670,21 +2787,6 @@ void selftest()
 
 	}//end while(1)  
 }
-#ifdef DEBUG_EN
-char debugMsgBuff[32];
-#endif
-void debug_out(char *pMsg, unsigned char len)
-{
-#ifdef DEBUG_EN
-	char i = 0;
-	for (i = 0; i < len; i++)
-	{
-		putchar(*pMsg++);
-		delay_us(300);
-	}
-#endif
-	return;
-}
 //[NGUYEN]Set bit and clear bit 
 #define setBit(p,n) ((p) |= (1 << (n)))
 #define clrBit(p,n) ((p) &= (~(1) << (n)))
@@ -2908,7 +3010,7 @@ void main(void)
 			selftest();
 		}
 		delay_ms(100);
-	}
+	}                             
 
 	// vao chuong trinh chinh sau khi bo qua phan selftest   
 	hc(2, 0);
@@ -2967,21 +3069,30 @@ void main(void)
 		}
 #else  
 		{
-
+			calcvitri(0, 0);
 #ifdef DEBUG_EN   
 			{
 				char dbgLen;
-				// left speed
+
+				dbgLen = sprintf(debugMsgBuff, "Distance: %f \n\r", distance);
+				debug_out(debugMsgBuff, dbgLen);
+
+				dbgLen = sprintf(debugMsgBuff, "Orientation: %f \n\r", orientation);
+				debug_out(debugMsgBuff, dbgLen);
+
 				dbgLen = sprintf(debugMsgBuff, "Left Speed: %d \n\r", leftSpeed);
 				debug_out(debugMsgBuff, dbgLen);
 
-				dbgLen = sprintf(debugMsgBuff, "Right Speed: %d \n\n\r", rightSpeed);
+				dbgLen = sprintf(debugMsgBuff, "Right Speed: %d \n\r", rightSpeed);
+				debug_out(debugMsgBuff, dbgLen);
+
+				dbgLen = sprintf(debugMsgBuff, "-------------------------- \n\r");
 				debug_out(debugMsgBuff, dbgLen);
 			}
 #endif  
 
 			movePoint(robotctrl, 0, 0, 0, 'f');
-			setSpeed(leftSpeed, rightSpeed);
+			setSpeed(leftSpeed, rightSpeed);m
 
 		}
 #endif
