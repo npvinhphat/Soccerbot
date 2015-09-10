@@ -70,7 +70,7 @@ Data Stack size         : 512
 #define NotFilled 0
 // VARIABLES FOR ROBOT CONTROL
 #define CtrVelocity    //uncomment de chon chay pid dieu khien van toc, va su dung cac ham vMLtoi,vMLlui,.... 
-#define ROBOT_ID 4
+#define ROBOT_ID 5
 #define SAN_ID 1  //CHON HUONG TAN CONG LA X >0;
 #define M_PI    3.14159265358979323846    /* pi */
 
@@ -2018,6 +2018,85 @@ interrupt[TIM1_OVF] void timer1_ovf_isr(void)
 #endif
 }
 
+// vl and vr is the speed of the encoder
+void Velocity(int vl, int vr) {
+	if (vl > 0) {
+		vMLtoi(vl);
+	}
+	else if (vl < 0) {
+		vMLlui(-vl);
+	}
+	else {
+		vMLstop();
+	}
+
+	if (vr > 0) {
+		vMRtoi(vr);
+	}
+	else if (vr < 0) {
+		vMLlui(-vr);
+	}
+	else {
+		vMRstop();
+	}
+}
+
+void Angle(int theta_d)
+{
+	int theta_e, vl, vr;
+	
+	theta_e = theta_d - (int)orientation;
+	
+	while (theta_e > 180) theta_e -= 360;
+	while (theta_e <= -180) theta_e += 360;
+
+	if (theta_e < -90) {
+		theta_e += 180;
+	} if (theta_e > 90) {
+		theta_e -= 180;
+	}
+
+	if (absolute(theta_e) > 50) {
+
+	}
+}
+
+void MoveToOrigin() {
+	float dist, newX, newY;
+
+	newX = robotctrl.x * 0.0333;
+	newY = robotctrl.y * 0.0333;
+
+
+	dist = sqrt((newX + 1) * (newX + 1) + (newY - 1) * (newY - 1));
+
+	if (dist < 2) {
+		vMRstop();
+		vMLstop();
+	}
+	else {
+		ctrRobottoi((int)(dist * 12 * 2), 20);
+	}
+
+#ifdef DEBUG_EN   
+	{
+		char dbgLen;
+
+		dbgLen = sprintf(debugMsgBuff, "Distance Square: %f \n\r", dist);
+		debug_out(debugMsgBuff, dbgLen);
+
+		dbgLen = sprintf(debugMsgBuff, "Robot.x: %d \n\r", robotctrl.x);
+		debug_out(debugMsgBuff, dbgLen);
+
+		dbgLen = sprintf(debugMsgBuff, "Robot.y: %d \n\r", robotctrl.y);
+		debug_out(debugMsgBuff, dbgLen);
+
+		dbgLen = sprintf(debugMsgBuff, "--------------- \n\r");
+		debug_out(debugMsgBuff, dbgLen);
+	}
+#endif  
+}
+
 //========================================================
 // read  vi tri robot   PHUC
 //========================================================
@@ -3017,6 +3096,9 @@ void main(void)
 	ws("MAIN PROGRAM");
 	settoadoHomRB();
 
+
+	//ctrRobottoi(1000, 22);
+	//MoveToOrigin();
 	// code you here  
 
 	while (1)
@@ -3072,27 +3154,11 @@ void main(void)
 			calcvitri(0, 0);
 #ifdef DEBUG_EN   
 			{
-				char dbgLen;
-
-				dbgLen = sprintf(debugMsgBuff, "Distance: %f \n\r", distance);
-				debug_out(debugMsgBuff, dbgLen);
-
-				dbgLen = sprintf(debugMsgBuff, "Orientation: %f \n\r", orientation);
-				debug_out(debugMsgBuff, dbgLen);
-
-				dbgLen = sprintf(debugMsgBuff, "Left Speed: %d \n\r", leftSpeed);
-				debug_out(debugMsgBuff, dbgLen);
-
-				dbgLen = sprintf(debugMsgBuff, "Right Speed: %d \n\r", rightSpeed);
-				debug_out(debugMsgBuff, dbgLen);
-
-				dbgLen = sprintf(debugMsgBuff, "-------------------------- \n\r");
-				debug_out(debugMsgBuff, dbgLen);
 			}
 #endif  
-
-			movePoint(robotctrl, 0, 0, 0, 'f');
-			setSpeed(leftSpeed, rightSpeed);m
+			MoveToOrigin();
+			//movePoint(robotctrl, 0, 0, 0, 'f');
+			//setSpeed(leftSpeed, rightSpeed);
 
 		}
 #endif

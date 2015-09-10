@@ -424,7 +424,7 @@ void movePoint(IntRobot rbctrl, int x_des, int y_des, int angle, char mode){
 		break;
 	}
 	// Set speed for motor
-    if (wl > 0){
+    /*if (wl > 15){
         wl = map(wl,0,82,5,22);}
     else{
         wl = map(-wl,0,82,5,22); 
@@ -435,7 +435,27 @@ void movePoint(IntRobot rbctrl, int x_des, int y_des, int angle, char mode){
     else{
         wr = map(-wr,0,82,5,22);
         wr = -wr;
-    } 
+    } */
+
+	if (wl>15){
+		wl = map(wl, 15, 82, 5, 22);
+	}
+	else{
+		wl = map(wl, 15, -60, 5, 22);
+
+	}
+	if (wl>15){
+		wr = map(wl, 15, 82, 5, 22);
+	}
+	else{
+		wr = map(wl, 15, -60, 5, 22);
+	}
+
+	if (wl == wr){
+		wl = 11;
+		wr = 11;
+	}
+
 	leftSpeed = wl;
 	rightSpeed = wr;
 
@@ -466,11 +486,6 @@ void movePoint(IntRobot rbctrl, int x_des, int y_des, int angle, char mode){
 
 int squareDistance(int aX, int aY, int bX, int bY) {
 	return (bX - aX) * (bX - aX) + (bY - bX) * (bY - bX);
-}
-
-void movePoint(IntRobot rbctrl, int x_des, int y_des, int angle)
-{
-	int _sqrDist;
 }
 
 // some function to set speed = 0
@@ -3071,13 +3086,13 @@ void main(void)
 				dbgLen = sprintf(debugMsgBuff, "Right Speed: %d \n\r", rightSpeed);
 				debug_out(debugMsgBuff, dbgLen);
 
-				dbgLen = sprintf(debugMsgBuff, "--------------------------", rightSpeed);
+				dbgLen = sprintf(debugMsgBuff, "-------------------------- \n\r");
 				debug_out(debugMsgBuff, dbgLen);
 			}
 #endif  
 
 			movePoint(robotctrl, 0, 0, 0, 'f');
-			setSpeed(leftSpeed, rightSpeed);
+			setSpeed(leftSpeed, rightSpeed);m
 
 		}
 #endif
